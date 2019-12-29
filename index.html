@@ -1,0 +1,342 @@
+<html>
+	
+	<head>
+	<h1 font-color="white">
+		HTML 5 / WebGL Example - Solar System </br> <h2>Pirmin Sidler</h2> 
+	</h1>
+	
+		<title>WebGL SolarSystem</title>
+		<meta charset="utf-8">
+ 
+		<style type="text/css">
+		head {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+				font-color = white;
+			}
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+
+<script src="three/build/Three.js"></script>
+
+<script>
+			// the main three.js components
+			var camera, scene, renderer;
+
+			// an array to store our particles in
+			particles = [];
+		
+
+	window.requestAnimFrame = (function(callback){
+        return window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.oRequestAnimationFrame ||
+        window.msRequestAnimationFrame ||
+        function(callback){
+            window.setTimeout(callback, 1000 / 60);
+        };
+    })();
+	
+			//Go!!
+			init();
+ 
+    function animate(lastTime, angularSpeed, three){
+        // update
+        var date = new Date();
+        var time = date.getTime();
+        var timeDiff = time - lastTime;
+		
+        var angleChange1 = angularSpeed * timeDiff * 2 * Math.PI / 1000;
+
+		three.sphere.rotation.y += angleChange1;
+
+        lastTime = time;
+ 
+        // render
+        three.renderer.render(three.scene, three.camera);
+
+        // request new frame
+        
+		requestAnimFrame(function(){
+            animate(lastTime, angularSpeed, three);
+        });
+		
+    }
+
+    function init(){
+	
+		//var canvas = window.getElement("earth");
+		//canvas.getContext(2d);
+		
+		var angularSpeed = 0.02; // revolutions per second
+        var lastTime = 0;
+		
+		// scene
+        scene = new THREE.Scene();
+		
+		//renderer
+        renderer = new THREE.WebGLRenderer( { antialias: true} );
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+ 
+        // camera
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 20000);
+        camera.position.x = 430;
+		camera.position.y = 0;
+		camera.position.z = 600;
+		scene.add( camera );     
+		
+		loadEarth();
+		
+		loadSun();
+		
+		//The particules to create the stars	
+		makeParticlesYel();
+		makeParticlesBlue()
+		makeParticlesRed()
+
+				
+        // add subtle ambient lighting
+        /*var ambientLight = new THREE.AmbientLight(0xffffff);
+        scene.add(ambientLight);*/
+ 
+        // add directional light source
+       var directionalLight = new THREE.DirectionalLight(0xffcccc);
+        directionalLight.position.set(0, 0, 0);
+        scene.add(directionalLight);
+		
+		
+		//scene.fog = new THREE.Fog(0x000000, 0.0000001);
+		
+		var three = {
+				renderer: renderer,
+				camera: camera,
+				scene: scene,
+				sphere: sphere,
+				sun: sphere,
+				//directionalLight: directionalLight
+		};
+		
+        animate(lastTime, angularSpeed, three, this);
+        
+    };
+	
+	function makeParticlesYel() { 
+			var pMaterial =
+		  new THREE.ParticleBasicMaterial({
+			color: 0xAAFFFF,
+			size: 20,
+			map:THREE.ImageUtils.loadTexture( "http://990815603.r.cdn77.net/img/particle.png"),
+			blending: THREE.AdditiveBlending,
+			transparent: true
+		  });
+	
+	
+				// create the particle variables
+		var particleCount = 2000,
+			particles = new THREE.Geometry(),
+			pMaterial;
+
+
+		// now create the individual particles
+		for(var p = 0; p < particleCount; p++) {
+
+		  // create a particle with random
+		  // position values, -250 -> 250
+		  var pX = Math.random() * 4000-2000,
+			  pY = Math.random() * 2000 - 1000,
+			  pZ = Math.random() * 3000-4000,
+			  particle = new THREE.Vector3(pX, pY, pZ);
+			  
+		  // add it to the geometry
+		  particles.vertices.push(particle);
+		}
+
+		// create the particle system
+		var particleSystemY =
+		  new THREE.ParticleSystem(
+			particles,
+			pMaterial);
+
+		// add it to the scene
+		scene.add(particleSystemY);
+
+		particleSystemY.sortParticles = true;
+			
+	}
+ 
+	function makeParticlesBlue() { 
+			var pMaterial =
+		  new THREE.ParticleBasicMaterial({
+			color: 0xAAFFFF,
+			size: 20,
+			map:THREE.ImageUtils.loadTexture( "http://990815603.r.cdn77.net/img/particleblue.png"),
+			blending: THREE.AdditiveBlending,
+			transparent: true
+		  });
+	
+	
+				// create the particle variables
+		var particleCount = 1500,
+			particles = new THREE.Geometry(),
+			pMaterial ;
+
+
+
+		// now create the individual particles
+		for(var p = 0; p < particleCount; p++) {
+
+		  // create a particle with random
+		  // position values, -250 -> 250
+		  var pX = Math.random() * 4000-2000,
+			  pY = Math.random() * 400 - 200,
+			  pZ = Math.random() * -4000,
+			  particle = new THREE.Vector3(pX, pY, pZ);			  
+
+		  // add it to the geometry
+		  particles.vertices.push(particle);
+		}
+
+		// create the particle system
+		var particleSystemB =
+		  new THREE.ParticleSystem(
+			particles,
+			pMaterial);
+
+		// add it to the scene
+		scene.add(particleSystemB);
+
+		particleSystemB.sortParticles = true;
+			
+	}
+	
+	function makeParticlesRed() { 
+			var pMaterial =
+		  new THREE.ParticleBasicMaterial({
+			color: 0xAAFFFF,
+			size: 15,
+			map:THREE.ImageUtils.loadTexture( "http://990815603.r.cdn77.net/img/particlered.png"),
+			blending: THREE.AdditiveBlending,
+			transparent: true
+		  });
+	
+				// create the particle variables
+		var particleCount = 800,
+			particles = new THREE.Geometry(),
+			pMaterial;
+			
+		// now create the individual particles
+		for(var p = 0; p < particleCount; p++) {
+
+		  // create a particle with random
+		  // position values, -250 -> 250
+		  var pX = Math.random() * 4000-2000,
+			  pY = Math.random() * 150 - 75,
+			  pZ = Math.random() * -4000,
+			  particle = new THREE.Vector3(pX, pY, pZ);
+
+		  // add it to the geometry
+		  particles.vertices.push(particle);
+		}
+
+		// create the particle system
+		var particleSystemR =
+		  new THREE.ParticleSystem(
+			particles,
+			pMaterial);
+
+		// add it to the scene
+		scene.add(particleSystemR);
+
+		particleSystemR.sortParticles = true;
+			
+	}
+
+	function loadEarth() {
+		
+		var material = new THREE.MeshLambertMaterial({
+            map:THREE.ImageUtils.loadTexture('http://990815603.r.cdn77.net/img/earth1024.bmp')
+        });
+		
+					
+		var geometry = 
+			new THREE.SphereGeometry(
+			25,
+			50,
+			50
+			);
+		
+		var m = new THREE.Matrix4();
+		m.makeTranslation( 400, 0, 0 );
+		geometry.applyMatrix( m );
+		
+        // sphere
+        sphere = new THREE.Mesh(
+			geometry,
+			material );
+		
+		//sphere.overdraw = true;
+		
+        scene.add(sphere);
+
+	}	
+		
+	function loadSun() {
+		
+		//Creating the glow map material
+		var stex = THREE.ImageUtils.loadTexture('http://990815603.r.cdn77.net/img/lavatile.jpg');
+		
+		stex.repeat.set( 5, 3 );
+		stex.wrapS = stex.wrapT = THREE.RepeatWrapping;
+
+
+		var smaterial = new THREE.MeshPhongMaterial({
+            map:stex,
+			shininess: 1,
+			opacity: 1,
+			specular: 1,
+			ambient: 0xffffff,
+			color: 0xffffff
+			//blending: THREE.AdditiveBlending
+
+        });		
+        // sphere
+        var sun = new THREE.Mesh(
+			new THREE.SphereGeometry(
+			60,
+			50,
+			50),
+			smaterial	
+			);
+		
+		sun.overdraw = true;
+        scene.add(sun);
+		
+		//light point
+		
+		light1 = new THREE.PointLight( 0xFFF5A9, 5, 1000 );
+		light1.position.set( 150, 0, 150 );
+		scene.add( light1 );
+		
+		light2 = new THREE.PointLight( 0xFFF5A9, 5, 1000 );
+		light2.position.set( -150, 0, -150 );
+		scene.add( light2 );
+		
+		
+		}
+</script>
+
+
+<body>
+<div align="right">
+		<canvas id="earth" ></canvas>
+</div>
+</body>
+</html>

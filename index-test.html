@@ -1,0 +1,578 @@
+<html>
+	
+	<head>
+		<title>WebGL SolarSystem</title>
+		<h2 style="color:white"></h2>
+	</head>
+	<meta charset="utf-8">
+	<style type="text/css">
+		head {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+				font-color = white;
+			}
+			body {
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+	</style>
+	
+
+
+<body>
+	<div align="right" style="position: absolute;">
+		<canvas id="earth" ></canvas>
+	</div>
+	<div style="position: absolute;">
+		<font style="color:white">
+			<h1>HTML 5 WebGL Example with Shaders - Solar System</h1> <h4>
+			Pirmin Sidler - Last Update on 22 october 2012</h4></font>
+	</div>
+</body>
+
+
+	<script src="js/Three.js"></script>
+	
+	<script src="js/ShaderExtras.js"></script>
+
+		<script src="js/postprocessing/EffectComposer.js"></script>
+		<script src="js/postprocessing/ShaderPass.js"></script>
+		<script src="js/postprocessing/MaskPass.js"></script>
+		<script src="js/postprocessing/RenderPass.js"></script>
+		<script src="js/postprocessing/BloomPass.js"></script>
+		<script src="js/postprocessing/FilmPass.js"></script>
+
+		<script src="js/Detector.js"></script>
+		<script src="js/RequestAnimationFrame.js">
+	</script>
+
+
+		<script id="fragmentShader" type="x-shader/x-fragment">
+
+			uniform float time;
+			uniform vec2 resolution;
+
+			uniform float fogDensity;
+			uniform vec3 fogColor;
+
+			uniform sampler2D texture1;
+			uniform sampler2D texture2;
+
+			varying vec2 vUv;
+
+			void main( void ) {
+
+				vec2 position = -1.0 + 2.0 * vUv;
+
+				vec4 noise = texture2D( texture1, vUv );
+				vec2 T1 = vUv + vec2( 1.5, -1.5 ) * time  *0.02;
+				vec2 T2 = vUv + vec2( -0.5, 2.0 ) * time * 0.01;
+
+				T1.x += noise.x * 2.0;
+				T1.y += noise.y * 2.0;
+				T2.x -= noise.y * 0.2;
+				T2.y += noise.z * 0.2;
+
+				float p = texture2D( texture1, T1 * 2.0 ).a;
+
+				vec4 color = texture2D( texture2, T2 * 2.0 );
+				vec4 temp = color * ( vec4( p, p, p, p ) * 2.0 ) + ( color * color - 0.1 );
+
+				if( temp.r > 1.0 ){ temp.bg += clamp( temp.r - 2.0, 0.0, 100.0 ); }
+				if( temp.g > 1.0 ){ temp.rb += temp.g - 1.0; }
+				if( temp.b > 1.0 ){ temp.rg += temp.b - 1.0; }
+
+				gl_FragColor = temp;
+
+				float depth = gl_FragCoord.z / gl_FragCoord.w;
+				const float LOG2 = 1.442695;
+				float fogFactor = exp2( - fogDensity * fogDensity * depth * depth * LOG2 );
+				fogFactor = 1.0 - clamp( fogFactor, 0.0, 1.0 );
+
+				gl_FragColor = mix( gl_FragColor, vec4( fogColor, gl_FragColor.w ), fogFactor );
+
+			}
+
+		</script>
+
+		<script id="vertexShader" type="x-shader/x-vertex">
+
+			uniform vec2 uvScale;
+			varying vec2 vUv;
+
+			void main()
+			{
+
+				vUv = uvScale * uv;
+				vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+				gl_Position = projectionMatrix * mvPosition;
+
+			}
+
+		</script>
+
+<script>
+
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			
+			// the main three.js components
+			var three, camera, scene, renderer, composer;
+			
+			var uniforms, material;
+			
+			var clock = new THREE.Clock();
+
+			// an array to store our particles in
+			particles = [];
+		
+
+	window.requestAnimFrame = (function(callback){
+        return window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame ||
+        window.oRequestAnimationFrame ||
+        window.msRequestAnimationFrame ||
+        function(callback){
+            window.setTimeout(callback, 1000 / 60);
+        };
+    })();
+	
+			//Go!!
+			init();
+			var angularSpeed = 0.1; // revolutions per second
+			var lastTime = 0;
+			animate(lastTime, angularSpeed, this);
+ 
+    function animate(lastTime, angularSpeed){
+        // update
+        var date = new Date();
+        var time = date.getTime();
+        var timeDiff = time - lastTime;
+		
+        var angleChange1 = angularSpeed * timeDiff * 2 * Math.PI / 1300;
+		var angleChange2 = angularSpeed * timeDiff * 2 * Math.PI / 2200;
+		var angleChange3 = angularSpeed * timeDiff * 2 * Math.PI / 800;
+		var angleChange4 = angularSpeed * timeDiff * 2 * Math.PI / 1800;
+
+		three.sphere1.rotation.y += angleChange1;
+		three.sphere2.rotation.y += angleChange2;
+		three.sphere3.rotation.y += angleChange3;
+		three.sphere4.rotation.y += angleChange4;
+
+        lastTime = time;
+ 
+        // render
+		render();
+
+        // request new frame
+        
+		requestAnimFrame(function(){
+            animate(lastTime, angularSpeed);
+        });
+    }
+	
+	function render() {
+
+				var delta = 5 * clock.getDelta();
+
+				uniforms.time.value += 0.1 * delta;
+
+				//mesh.rotation.y += 0.0125 * delta;
+				//mesh.rotation.x += 0.05 * delta;
+
+				renderer.clear();
+				composer.render( 0.01 );
+				
+				//three.renderer.render(three.scene, three.camera);
+
+	}
+	
+    function init(){
+	
+		//var canvas = window.getElement("earth");
+		//canvas.getContext(2d);
+		
+		var angularSpeed = 0.02; // revolutions per second
+        var lastTime = 0;
+		
+		// scene
+        scene = new THREE.Scene();
+		
+		
+ 
+        // camera
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 20000);
+        camera.position.x = 600;
+		camera.position.y = 50;
+		camera.position.z = 900;
+		scene.add( camera );     
+		
+		loadJupiter()
+		loadMars()
+		loadEarth();
+		loadVenus()
+		loadSun();
+		
+		//The particules to create the stars	
+		makeParticlesYel();
+		makeParticlesBlue()
+		makeParticlesRed()
+
+				
+        // add subtle ambient lighting
+        /*var ambientLight = new THREE.AmbientLight(0x666666);
+        scene.add(ambientLight);*/
+ 
+        // add directional light source
+       /*var directionalLight = new THREE.DirectionalLight(0xffcccc);
+        directionalLight.position.set(0, 0, 0);
+        scene.add(directionalLight);*/
+		
+		
+		//scene.fog = new THREE.Fog(0x000000, 0.0000001);
+		
+		three = {
+				renderer: renderer,
+				camera: camera,
+				scene: scene,
+				sphere1: sphere1,
+				sphere2: sphere2,
+				sphere3: sphere3,
+				sphere4: sphere4
+				//directionalLight: directionalLight
+		};
+		
+		//renderer
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+		renderer.autoClear = false;
+		
+		
+
+		var renderModel = new THREE.RenderPass( scene, camera );
+				var effectBloom = new THREE.BloomPass( 2.5 );
+				var effectFilm = new THREE.FilmPass( 0.1, 0.1, 2048, false );
+
+				effectFilm.renderToScreen = true;
+
+				composer = new THREE.EffectComposer( renderer );
+
+				composer.addPass( renderModel );
+				composer.addPass( effectBloom );
+				composer.addPass( effectFilm );
+		
+    };
+	
+	function makeParticlesYel() { 
+			var pMaterial =
+		  new THREE.ParticleBasicMaterial({
+			color: 0xAAFFFF,
+			size: 20,
+			map:THREE.ImageUtils.loadTexture( 'img/particle.png'),
+			blending: THREE.AdditiveBlending,
+			transparent: true
+		  });
+	
+	
+				// create the particle variables
+		var particleCount = 2000,
+			particles = new THREE.Geometry(),
+			pMaterial;
+
+
+		// now create the individual particles
+		for(var p = 0; p < particleCount; p++) {
+
+		  // create a particle with random
+		  // position values, -250 -> 250
+		  var pX = Math.random() * 4000-2000,
+			  pY = Math.random() * 2500 - 1250,
+			  pZ = Math.random() * 4500-5500,
+			  particle = new THREE.Vector3(pX, pY, pZ);
+			  
+		  // add it to the geometry
+		  particles.vertices.push(particle);
+		}
+
+		// create the particle system
+		var particleSystemY =
+		  new THREE.ParticleSystem(
+			particles,
+			pMaterial);
+
+		// add it to the scene
+		scene.add(particleSystemY);
+
+		particleSystemY.sortParticles = true;
+			
+	}
+ 
+	function makeParticlesBlue() { 
+			var pMaterial =
+		  new THREE.ParticleBasicMaterial({
+			color: 0xAAFFFF,
+			size: 20,
+			map:THREE.ImageUtils.loadTexture( "img/particleblue.png"),
+			blending: THREE.AdditiveBlending,
+			transparent: true
+		  });
+	
+	
+				// create the particle variables
+		var particleCount = 1500,
+			particles = new THREE.Geometry(),
+			pMaterial ;
+
+
+
+		// now create the individual particles
+		for(var p = 0; p < particleCount; p++) {
+
+		  // create a particle with random
+		  // position values, -250 -> 250
+		  var pX = Math.random() * 4000-2000,
+			  pY = Math.random() * 400 - 200,
+			  pZ = Math.random() * -6000,
+			  particle = new THREE.Vector3(pX, pY, pZ);			  
+
+		  // add it to the geometry
+		  particles.vertices.push(particle);
+		}
+
+		// create the particle system
+		var particleSystemB =
+		  new THREE.ParticleSystem(
+			particles,
+			pMaterial);
+
+		// add it to the scene
+		scene.add(particleSystemB);
+
+		particleSystemB.sortParticles = true;
+			
+	}
+	
+	function makeParticlesRed() { 
+			var pMaterial =
+		  new THREE.ParticleBasicMaterial({
+			color: 0xAAFFFF,
+			size: 15,
+			map:THREE.ImageUtils.loadTexture( "img/particlered.png"),
+			blending: THREE.AdditiveBlending,
+			transparent: true
+		  });
+	
+				// create the particle variables
+		var particleCount = 800,
+			particles = new THREE.Geometry(),
+			pMaterial;
+			
+		// now create the individual particles
+		for(var p = 0; p < particleCount; p++) {
+
+		  // create a particle with random
+		  // position values, -250 -> 250
+		  var pX = Math.random() * 4000-2000,
+			  pY = Math.random() * 150 - 75,
+			  pZ = Math.random() * -5500,
+			  particle = new THREE.Vector3(pX, pY, pZ);
+
+		  // add it to the geometry
+		  particles.vertices.push(particle);
+		}
+
+		// create the particle system
+		var particleSystemR =
+		  new THREE.ParticleSystem(
+			particles,
+			pMaterial);
+
+		// add it to the scene
+		scene.add(particleSystemR);
+
+		particleSystemR.sortParticles = true;
+			
+	}
+
+	function loadMars() {
+		
+		var material = new THREE.MeshPhongMaterial({
+            map:THREE.ImageUtils.loadTexture( 'img/mars.jpg'),
+						specular: 0,
+			diffuse: 0
+        });
+		
+					
+		var geometry = 
+			new THREE.SphereGeometry(
+			45,
+			50,
+			50
+			);
+		
+		var m = new THREE.Matrix4();
+		m.makeTranslation( 600, 0, 0 );
+		geometry.applyMatrix( m );
+		
+        // sphere
+        sphere4 = new THREE.Mesh(
+			geometry,
+			material );
+		
+		//sphere.overdraw = true;
+		
+        scene.add(sphere4);
+
+	}
+
+	function loadVenus() {
+		
+		var material = new THREE.MeshPhongMaterial({
+            map:THREE.ImageUtils.loadTexture( 'img/venus.jpg'),
+			specular: 0,
+			diffuse: 0
+        });
+		
+					
+		var geometry = 
+			new THREE.SphereGeometry(
+			20,
+			50,
+			50
+			);
+		
+		var m = new THREE.Matrix4();
+		m.makeTranslation( 200, 0, 0 );
+		geometry.applyMatrix( m );
+		
+        // sphere
+        sphere3 = new THREE.Mesh(
+			geometry,
+			material );
+		
+		//sphere.overdraw = true;
+		
+        scene.add(sphere3);
+
+	}
+
+	function loadJupiter() {
+		
+		var material = new THREE.MeshPhongMaterial({
+            map:THREE.ImageUtils.loadTexture( 'img/jupiter.jpg'),
+						specular: 0,
+			diffuse: 0
+        });
+		
+					
+		var geometry = 
+			new THREE.SphereGeometry(
+			80,
+			50,
+			50
+			);
+		
+		var m = new THREE.Matrix4();
+		m.makeTranslation( 900, 0, 0 );
+		geometry.applyMatrix( m );
+		
+        // sphere
+        sphere2 = new THREE.Mesh(
+			geometry,
+			material );
+		
+		//sphere.overdraw = true;
+		
+        scene.add(sphere2);
+
+	}		
+		
+	function loadEarth() {
+		
+		var material = new THREE.MeshPhongMaterial({
+            map:THREE.ImageUtils.loadTexture( 'img/earth.jpg'),
+			specular: 0,
+			diffuse: 0
+        });
+		
+					
+		var geometry = 
+			new THREE.SphereGeometry(
+			30,
+			50,
+			50
+			);
+		
+		var m = new THREE.Matrix4();
+		m.makeTranslation( 400, 0, 0 );
+		geometry.applyMatrix( m );
+		
+        // sphere
+        sphere1 = new THREE.Mesh(
+			geometry,
+			material );
+		
+		//sphere.overdraw = true;
+		
+        scene.add(sphere1);
+
+	}	
+		
+	function loadSun() {
+		
+		uniforms = {	
+					//fogDensity: { type: "f", value: 0.45 },
+					//fogColor: { type: "v3", value: new THREE.Vector3( 0, 0, 0 ) },
+					time: { type: "f", value: 1.0 },
+					resolution: { type: "v2", value: new THREE.Vector2() },
+					uvScale: { type: "v2", value: new THREE.Vector2( 3.0, 1.0 ) },
+					texture1: { type: "t", value: 0, texture: THREE.ImageUtils.loadTexture( 'img/cloud.png') },
+					texture2: { type: "t", value: 1, texture: THREE.ImageUtils.loadTexture( 'img/lavatile.jpg') }
+
+				};
+
+				uniforms.texture1.texture.wrapS = uniforms.texture1.texture.wrapT = THREE.RepeatWrapping;;
+				uniforms.texture2.texture.wrapS = uniforms.texture2.texture.wrapT = THREE.RepeatWrapping;;
+
+				var size = 0.63;
+
+				material = new THREE.ShaderMaterial( {
+
+					uniforms: uniforms,
+					vertexShader: document.getElementById( 'vertexShader' ).textContent,
+					fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+
+				} );
+	
+        // sphere
+        var sun = new THREE.Mesh(
+			new THREE.SphereGeometry(
+			125,
+			100,
+			100),
+			material	
+			);
+		
+		sun.overdraw = true;
+        scene.add(sun);
+		
+		//light point
+		
+		light1 = new THREE.PointLight( 0x332222, 5, 2000 );
+		light1.position.set( 150, 0, 150 );
+		scene.add( light1 );
+		
+		/*light2 = new THREE.PointLight( 0x443333, 5, 1000 );
+		light2.position.set( -150, 0, -150 );
+		scene.add( light2 );*/
+		
+		
+		
+		
+		}
+</script>
+
+</html>
